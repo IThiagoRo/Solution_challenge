@@ -12,8 +12,13 @@ logger = logging.getLogger(__name__)
 TOP_N_FEATURES_DEFAULT = 15
 
 
-def evaluate_on_test(model, threshold: float, X_test: pd.DataFrame, y_test: pd.Series,
-                      monto_test: pd.Series) -> dict:
+def evaluate_on_test(
+    model,
+    threshold: float,
+    X_test: pd.DataFrame,
+    y_test: pd.Series,
+    monto_test: pd.Series,
+) -> dict:
     """Final, one-shot evaluation on a held-out test set: classification metrics at
     both the default (0.5) and business threshold, plus profit against the two
     trivial baselines (approve everything / reject everything).
@@ -23,13 +28,21 @@ def evaluate_on_test(model, threshold: float, X_test: pd.DataFrame, y_test: pd.S
     the decision policy to the very data used to report final performance.
     """
     try:
-        logger.info("Evaluating model on %d test rows (threshold=%.3f)", len(X_test), threshold)
+        logger.info(
+            "Evaluating model on %d test rows (threshold=%.3f)",
+            len(X_test),
+            threshold,
+        )
 
         test_proba = model.predict_proba(X_test)[:, 1]
         approved = test_proba < threshold
 
-        metrics_default = training.evaluate_classification_metrics(y_test, test_proba, threshold=0.5)
-        metrics_business = training.evaluate_classification_metrics(y_test, test_proba, threshold=threshold)
+        metrics_default = training.evaluate_classification_metrics(
+            y_test, test_proba, threshold=0.5
+        )
+        metrics_business = training.evaluate_classification_metrics(
+            y_test, test_proba, threshold=threshold
+        )
 
         profit_model = training.portfolio_profit(y_test, approved, monto_test)
         profit_approve_all = training.portfolio_profit(
@@ -53,7 +66,9 @@ def evaluate_on_test(model, threshold: float, X_test: pd.DataFrame, y_test: pd.S
         }
         logger.info(
             "Test profit: model=%.2f, approve_all=%.2f, reject_all=%.2f, uplift=%.2f",
-            profit_model, profit_approve_all, profit_reject_all,
+            profit_model,
+            profit_approve_all,
+            profit_reject_all,
             results["profit_uplift_vs_approve_all"],
         )
         return results
@@ -62,30 +77,43 @@ def evaluate_on_test(model, threshold: float, X_test: pd.DataFrame, y_test: pd.S
         raise CustomException(str(e), sys) from e
 
 
-def get_feature_importance(model, feature_columns: list, top_n: int = TOP_N_FEATURES_DEFAULT) -> pd.Series:
+def get_feature_importance(
+    model, feature_columns: list, top_n: int = TOP_N_FEATURES_DEFAULT
+) -> pd.Series:
     """Return the top-N most important features, for any of the model types this
     project has trained: tree-based (feature_importances_) or a scikit-learn
     Pipeline wrapping a linear model (absolute coefficients).
     """
     try:
         if hasattr(model, "feature_importances_"):
-            importances = pd.Series(model.feature_importances_, index=feature_columns)
+            importances = pd.Series(
+                model.feature_importances_, index=feature_columns
+            )
         elif hasattr(model, "named_steps"):
             coefs = model.named_steps["clf"].coef_[0]
             importances = pd.Series(np.abs(coefs), index=feature_columns)
         else:
-            logger.warning("Model type %s exposes no known importance/coefficient attribute", type(model))
+            logger.warning(
+                "Model type %s exposes no known importance/coefficient attribute",
+                type(model),
+            )
             return pd.Series(dtype=float)
 
         top_importances = importances.sort_values(ascending=False).head(top_n)
-        logger.info("Top feature: %s (importance=%.4f)", top_importances.index[0], top_importances.iloc[0])
+        logger.info(
+            "Top feature: %s (importance=%.4f)",
+            top_importances.index[0],
+            top_importances.iloc[0],
+        )
         return top_importances
     except Exception as e:
         logger.error("Failed to compute feature importance: %s", e)
         raise CustomException(str(e), sys) from e
 
 
-def check_threshold_stability(model, threshold: float, datasets: dict) -> pd.DataFrame:
+def check_threshold_stability(
+    model, threshold: float, datasets: dict
+) -> pd.DataFrame:
     """Compute the profit that a single, already-fixed threshold would yield across
     several named splits (e.g. train/val/test).
 
@@ -102,7 +130,10 @@ def check_threshold_stability(model, threshold: float, datasets: dict) -> pd.Dat
             rows.append({"split": name, "profit_at_threshold": profit})
 
         stability = pd.DataFrame(rows).set_index("split")
-        logger.info("Threshold stability across splits: %s", stability.to_dict()["profit_at_threshold"])
+        logger.info(
+            "Threshold stability across splits: %s",
+            stability.to_dict()["profit_at_threshold"],
+        )
         return stability
     except Exception as e:
         logger.error("Failed to check threshold stability: %s", e)
@@ -125,8 +156,12 @@ def evaluation_pipeline(
         threshold = model_artifact["threshold"]
         feature_columns = model_artifact["feature_columns"]
 
-        metrics = evaluate_on_test(model, threshold, X_test, y_test, monto_test)
-        feature_importance = get_feature_importance(model, feature_columns, top_n=top_n_features)
+        metrics = evaluate_on_test(
+            model, threshold, X_test, y_test, monto_test
+        )
+        feature_importance = get_feature_importance(
+            model, feature_columns, top_n=top_n_features
+        )
 
         return {"metrics": metrics, "feature_importance": feature_importance}
     except CustomException:
