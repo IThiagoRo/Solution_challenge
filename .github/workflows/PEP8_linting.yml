@@ -1,0 +1,47 @@
+name: PEP8 Linting
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+env:
+  PYTHON_VERSION: "3.12"
+  BLACK_VERSION: "25.1.0"
+  ISORT_VERSION: "6.0.1"
+  FLAKE8_VERSION: "7.1.2"
+
+jobs:
+  isort:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install "isort==${{ env.ISORT_VERSION }}"
+      - run: isort . --check-only --diff
+
+  black:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install "black==${{ env.BLACK_VERSION }}"
+      - run: black --check --diff .
+
+  flake8:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install "flake8==${{ env.FLAKE8_VERSION }}"
+      - run: flake8 --statistics --show-source
