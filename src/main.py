@@ -12,15 +12,24 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.core import logger as _logger_setup
-from src.core.exception import CustomException
-from src.pipelines import evaluation, inference, preprocessing, training
-
+# isort: off
 # Running this file directly (`python src/main.py`) only puts its own directory
 # (src/) on sys.path, not the project root -- so `src` itself would not be
-# importable as a package without this. Must run before the `src.*` imports below.
+# importable as a package without this. Must run before the `src.*` imports
+# below -- the isort markers keep isort from moving those imports back above
+# this line the next time the file is reformatted.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from src.core import logger as _logger_setup  # noqa: E402,F401
+from src.core.exception import CustomException  # noqa: E402
+from src.pipelines import (  # noqa: E402
+    evaluation,
+    inference,
+    preprocessing,
+    training,
+)
+
+# isort: on
 
 logger = logging.getLogger(__name__)
 
