@@ -53,12 +53,8 @@ def fit_preprocessing(
 
 
 def transform(data: pd.DataFrame, params: dict) -> pd.DataFrame:
-    """Apply feature engineering to a new dataset, using ONLY already-fitted params.
-
-    Replicates, column by column, the transformations defined and validated in
-    notebooks/2_feature_engineering.ipynb (imputation, encoding, temporal features).
-    `k` is deliberately dropped: it is a per-row unique identifier (see
-    notebooks/1_EDA.ipynb, Section 2), not a business variable.
+    """
+    Apply feature engineering to a new dataset, using ONLY already-fitted params.
     """
     try:
         logger.info(
@@ -148,7 +144,8 @@ def transform(data: pd.DataFrame, params: dict) -> pd.DataFrame:
 def align_columns(
     features: pd.DataFrame, reference_columns: list
 ) -> pd.DataFrame:
-    """Align a transformed DataFrame's columns to a reference list (e.g. train's columns).
+    """
+    Align a transformed DataFrame's columns to a reference list (e.g. train's columns).
 
     Any expected column that is missing (due to an unseen category) is filled with 0;
     unexpected extra columns are dropped. Prevents breaking in production on new data.
