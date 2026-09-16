@@ -10,20 +10,25 @@ import logging
 import sys
 from pathlib import Path
 
+import pandas as pd
+
+from src.core import (
+    logger as _logger_setup,
+)  # noqa: F401  (import side effect: configures logging)
+from src.core.exception import CustomException
+from src.pipelines import evaluation, inference, preprocessing, training
+
 # Running this file directly (`python src/main.py`) only puts its own directory
 # (src/) on sys.path, not the project root -- so `src` itself would not be
 # importable as a package without this. Must run before the `src.*` imports below.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import pandas as pd
-
-from src.core import logger as _logger_setup  # noqa: F401  (import side effect: configures logging)
-from src.core.exception import CustomException
-from src.pipelines import evaluation, inference, preprocessing, training
 
 logger = logging.getLogger(__name__)
 
-RAW_DATA_PATH_DEFAULT = "data/MercadoLibre Data Scientist Technical Challenge - Dataset.csv"
+RAW_DATA_PATH_DEFAULT = (
+    "data/MercadoLibre Data Scientist Technical Challenge - Dataset.csv"
+)
 ARTIFACTS_DIR_DEFAULT = "artifacts"
 PREDICTIONS_PATH_DEFAULT = "artifacts/predictions.csv"
 
@@ -31,7 +36,9 @@ VAL_FRAC = 0.15
 TEST_FRAC = 0.15
 
 
-def temporal_split(df: pd.DataFrame, val_frac: float = VAL_FRAC, test_frac: float = TEST_FRAC):
+def temporal_split(
+    df: pd.DataFrame, val_frac: float = VAL_FRAC, test_frac: float = TEST_FRAC
+):
     """Chronologically split a raw dataset into train/val/test (see
     notebooks/2_feature_engineering.ipynb): val and test always come after train in
     time, to mimic how the model would only ever see past data in production.
@@ -46,9 +53,15 @@ def temporal_split(df: pd.DataFrame, val_frac: float = VAL_FRAC, test_frac: floa
         test_df = df_sorted.iloc[val_end:]
         logger.info(
             "Temporal split: train=%d (%s -> %s), val=%d (%s -> %s), test=%d (%s -> %s)",
-            len(train_df), train_df["fecha"].min(), train_df["fecha"].max(),
-            len(val_df), val_df["fecha"].min(), val_df["fecha"].max(),
-            len(test_df), test_df["fecha"].min(), test_df["fecha"].max(),
+            len(train_df),
+            train_df["fecha"].min(),
+            train_df["fecha"].max(),
+            len(val_df),
+            val_df["fecha"].min(),
+            val_df["fecha"].max(),
+            len(test_df),
+            test_df["fecha"].min(),
+            test_df["fecha"].max(),
         )
         return train_df, val_df, test_df
     except Exception as e:
@@ -66,16 +79,29 @@ def run_training(data_path: str, artifacts_dir: str) -> None:
 
     X_train, params = preprocessing.preprocess_data(train_df)
     feature_columns = list(X_train.columns)
-    X_val, _ = preprocessing.preprocess_data(val_df, params=params, reference_columns=feature_columns)
-    X_test, _ = preprocessing.preprocess_data(test_df, params=params, reference_columns=feature_columns)
-    preprocessing.save_params(params, feature_columns, f"{artifacts_dir}/preprocessing_params.pkl")
+    X_val, _ = preprocessing.preprocess_data(
+        val_df, params=params, reference_columns=feature_columns
+    )
+    X_test, _ = preprocessing.preprocess_data(
+        test_df, params=params, reference_columns=feature_columns
+    )
+    preprocessing.save_params(
+        params, feature_columns, f"{artifacts_dir}/preprocessing_params.pkl"
+    )
 
-    y_train, y_val, y_test = train_df["fraude"], val_df["fraude"], test_df["fraude"]
+    y_train, y_val, y_test = (
+        train_df["fraude"],
+        val_df["fraude"],
+        test_df["fraude"],
+    )
     monto_val, monto_test = val_df["monto"], test_df["monto"]
 
     result = training.train_pipeline(X_train, y_train, X_val, y_val, monto_val)
     training.save_model(
-        result["model_name"], result["model"], result["threshold"], feature_columns,
+        result["model_name"],
+        result["model"],
+        result["threshold"],
+        feature_columns,
         f"{artifacts_dir}/final_model.pkl",
     )
 
@@ -86,13 +112,19 @@ def run_training(data_path: str, artifacts_dir: str) -> None:
         "threshold": result["threshold"],
         "feature_columns": feature_columns,
     }
-    eval_result = evaluation.evaluation_pipeline(model_artifact, X_test, y_test, monto_test)
+    eval_result = evaluation.evaluation_pipeline(
+        model_artifact, X_test, y_test, monto_test
+    )
     logger.info("Final test metrics: %s", eval_result["metrics"])
-    logger.info("Top features: %s", eval_result["feature_importance"].to_dict())
+    logger.info(
+        "Top features: %s", eval_result["feature_importance"].to_dict()
+    )
     logger.info("=== TRAINING pipeline complete ===")
 
 
-def run_inference(input_path: str, output_path: str, artifacts_dir: str) -> None:
+def run_inference(
+    input_path: str, output_path: str, artifacts_dir: str
+) -> None:
     """Load new, raw transactions and score them with the already-trained pipeline."""
     logger.info("=== Starting INFERENCE pipeline ===")
     raw_df = pd.read_csv(input_path, parse_dates=["fecha"])
@@ -109,26 +141,38 @@ def run_inference(input_path: str, output_path: str, artifacts_dir: str) -> None
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Fraud detection MLOps pipeline")
+    parser = argparse.ArgumentParser(
+        description="Fraud detection MLOps pipeline"
+    )
     mode = parser.add_mutually_exclusive_group(required=True)
-    mode.add_argument("--training", action="store_true", help="Run the training pipeline end to end")
-    mode.add_argument("--inference", action="store_true", help="Score new, raw transactions")
+    mode.add_argument(
+        "--training",
+        action="store_true",
+        help="Run the training pipeline end to end",
+    )
+    mode.add_argument(
+        "--inference", action="store_true", help="Score new, raw transactions"
+    )
 
     parser.add_argument(
-        "--data", default=RAW_DATA_PATH_DEFAULT,
+        "--data",
+        default=RAW_DATA_PATH_DEFAULT,
         help="Raw CSV used for --training (default: the challenge dataset)",
     )
     parser.add_argument(
-        "--input", default=RAW_DATA_PATH_DEFAULT,
+        "--input",
+        default=RAW_DATA_PATH_DEFAULT,
         help="Raw CSV of new transactions to score with --inference "
-             "(default: the challenge dataset, for a quick smoke test)",
+        "(default: the challenge dataset, for a quick smoke test)",
     )
     parser.add_argument(
-        "--output", default=PREDICTIONS_PATH_DEFAULT,
+        "--output",
+        default=PREDICTIONS_PATH_DEFAULT,
         help="Where to save --inference predictions",
     )
     parser.add_argument(
-        "--artifacts-dir", default=ARTIFACTS_DIR_DEFAULT,
+        "--artifacts-dir",
+        default=ARTIFACTS_DIR_DEFAULT,
         help="Directory to read/write preprocessing and model artifacts",
     )
     return parser.parse_args()
