@@ -62,6 +62,16 @@ def transform(data: pd.DataFrame, params: dict) -> pd.DataFrame:
         )
         out = pd.DataFrame(index=data.index)
 
+        # A single-row batch (e.g. one transaction from the API) can make pandas
+        # infer an all-null nullable column as dtype=object instead of float64,
+        # which breaks np.log1p below -- coerce these to numeric up front so
+        # fillna/log1p always see float64 regardless of batch size.
+        data = data.copy()
+        numeric_nullable_cols = ["b", "c", "d", "f", "l", "m"]
+        data[numeric_nullable_cols] = data[numeric_nullable_cols].apply(
+            pd.to_numeric, errors="coerce"
+        )
+
         # a: one-hot
         out = pd.concat(
             [
