@@ -12,9 +12,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.core import (
-    logger as _logger_setup,
-)  # noqa: F401  (import side effect: configures logging)
+from src.core import logger as _logger_setup
 from src.core.exception import CustomException
 from src.pipelines import evaluation, inference, preprocessing, training
 
