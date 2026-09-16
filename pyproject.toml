@@ -1,0 +1,28 @@
+# - This file is the configuration for the Python project.
+# - It specifies the build system requirements and tool 
+# configurations for code formatting and import sorting.
+# - It uses for continues integration and development 
+# environment setup.
+
+[tool.black]
+line-length = 79 
+target-version = ['py38']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # Directories to exclude
+  \.eggs
+  | \.git
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 79
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
