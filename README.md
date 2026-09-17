@@ -1,4 +1,4 @@
-#Technical Challenge
+# Technical Challenge
 
 Solución al *Technical challenge*: un modelo de Machine Learning que decide, transacción por transacción, si aprobar o rechazar un pago, maximizando la **ganancia económica** del negocio (no solo métricas de clasificación) bajo la regla:
 
@@ -98,7 +98,7 @@ docker run --rm \
 
 ## 3. API en tiempo real (FastAPI)
 
-`api/main.py` expone el modelo entrenado como un servicio HTTP para puntuar transacciones al vuelo, reutilizando el mismo `src/pipelines/inference.py` que usa el CLI por lote (misma lógica de negocio en ambos caminos).
+`api/main.py` expone el modelo entrenado como un servicio HTTP para puntuar transacciones en real time, reutilizando el mismo `src/pipelines/inference.py` que usa el CLI por lote (misma lógica de negocio en ambos caminos).
 
 ### Cómo levantarla
 
@@ -144,4 +144,4 @@ Respuesta:
 }
 ```
 
-`is_fraud` es la decisión de negocio (`P(fraude) >= threshold`), usando el umbral que se calibró sobre validación en `3_modeling.ipynb` / `src/pipelines/training.py` — no un umbral fijo de 0.5.
+`is_fraud` es la decisión de negocio (`P(fraude) >= threshold`), usando el umbral que se calibró sobre validación en `3_modeling.ipynb`
